@@ -11,11 +11,15 @@ import {
   getBooksAction,
   getVersesAction,
 } from "../../redux/actions/bookAction";
+import {
+  setCurrentReading,
+  addToFavorite,
+  removeFromFavorite,
+} from "../../redux/actions/sharedAction";
 import ChapterPicker from "./components/ChapterPicker";
 import chapters from "../../json/chapters.json";
 import styles from "./styles";
 import Colors from "../../constants/Colors";
-import Loading from "../../components/Loading";
 
 const BookScreen = () => {
   useEffect(() => {
@@ -23,10 +27,15 @@ const BookScreen = () => {
   }, [_getBooks]);
 
   const dispatch = useDispatch();
-  const [currentChapter, setCurrentChapter] = useState(0);
-  const [currentBook, setCurrentBook] = useState("");
-  const verses = useSelector((state) => state.bookReducer.verses);
 
+  const verses = useSelector((state) => state.bookReducer.verses);
+  const favoriteVerses = useSelector(
+    (state) => state.sharedReducer.favoriteVerses
+  );
+
+  const currentChapter = useSelector(
+    (state) => state.sharedReducer.currentChapter
+  );
   const colorScheme = useColorScheme();
 
   const textStyle = {
@@ -51,15 +60,18 @@ const BookScreen = () => {
     const bookInfo = chapters.find(
       (i) => i.book.toLowerCase() === book.toLowerCase()
     );
-    setCurrentBook(bookInfo.book);
-    setCurrentChapter(chapterIndex);
+    dispatch(setCurrentReading(bookInfo.book, chapterIndex));
     const chapterInfo = bookInfo.chapters[chapterIndex - 1];
     dispatch(getVersesAction(bookInfo.book, chapterIndex, chapterInfo.verses));
     setModalVisible(false);
   };
 
-  const _onPressVerse = (verse) => {
-    console.log("_onPressVerse", verse);
+  const _onPressVerse = (verse, isFavorite) => {
+    if (!isFavorite) {
+      dispatch(addToFavorite(verse.book_name, verse.chapter, verse.verse));
+    } else {
+      dispatch(removeFromFavorite(verse.book_name, verse.chapter, verse.verse));
+    }
   };
 
   const _renderVerses = () => {
@@ -67,12 +79,26 @@ const BookScreen = () => {
     return (
       <ScrollView style={styles.contentContainer}>
         <Text style={styles.bookTitle}>{verses[0].book_name}</Text>
-        {verses.map((item, index) => (
-          <Text style={styles.verseText} onPress={() => _onPressVerse(item)}>
-            <Text>{item.verse}. </Text>
-            <Text>{item.text}</Text>
-          </Text>
-        ))}
+        {verses.map((item, index) => {
+          const isFavorited = favoriteVerses.find(
+            (i) => i.verse === item.verse
+          );
+          return (
+            <View
+              style={{
+                backgroundColor: isFavorited ? "#FDF5E0" : "transparent",
+              }}
+            >
+              <Text
+                style={styles.verseText}
+                onPress={() => _onPressVerse(item, isFavorited)}
+              >
+                <Text>{item.verse}. </Text>
+                <Text>{item.text}</Text>
+              </Text>
+            </View>
+          );
+        })}
       </ScrollView>
     );
   };
