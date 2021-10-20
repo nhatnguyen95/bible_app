@@ -2,16 +2,17 @@ import React from "react";
 import type { Node } from "react";
 import { SafeAreaView, Text, useColorScheme } from "react-native";
 
-import { Colors } from "react-native/Libraries/NewAppScreen";
 import Navigation from "./src/navigation";
 import { Provider } from "react-redux";
 import store from "./src/redux/store";
+import Colors from "./src/constants/Colors";
+import Loading from "./src/components/Loading";
 
 const App: () => Node = () => {
   const colorScheme = useColorScheme();
 
   const backgroundStyle = {
-    backgroundColor: colorScheme === "dark" ? Colors.darker : Colors.lighter,
+    backgroundColor: Colors[colorScheme].background,
   };
 
   return (
@@ -19,6 +20,7 @@ const App: () => Node = () => {
       <SafeAreaView style={[{ flex: 1 }, backgroundStyle]}>
         <Navigation colorScheme={colorScheme} />
       </SafeAreaView>
+      <Loading />
     </Provider>
   );
 };

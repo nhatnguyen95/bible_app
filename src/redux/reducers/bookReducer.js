@@ -2,7 +2,7 @@ import { bookActionTypes } from "../actions/bookAction";
 
 const defaultState = {
   books: [],
-  count: 0,
+  verses: [],
 };
 
 const bookReducer = (state = defaultState, action) => {
@@ -11,7 +11,11 @@ const bookReducer = (state = defaultState, action) => {
       return {
         ...state,
         books: action.books,
-        count: (state.count += 1),
+      };
+    case bookActionTypes.GET_VERSES_SUCCESS:
+      return {
+        ...state,
+        verses: action.verses,
       };
     default:
       return state;
