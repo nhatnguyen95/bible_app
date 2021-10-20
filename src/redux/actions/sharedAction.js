@@ -20,7 +20,7 @@ export const setCurrentReading = (book, chapter) => {
   };
 };
 
-export const addToFavorite = (book, chapter, verse) => {
+export const addToFavorite = (book, chapter, verse, text) => {
   return (dispatch, getState) => {
     const favoriteVerses = getState().sharedReducer.favoriteVerses;
     const isExisted = favoriteVerses.find(
@@ -31,6 +31,7 @@ export const addToFavorite = (book, chapter, verse) => {
         book,
         chapter,
         verse,
+        text,
       });
     }
     dispatch({
@@ -47,9 +48,7 @@ export const removeFromFavorite = (book, chapter, verse) => {
       (i) => i.book === book && i.chapter === chapter && i.verse === verse
     );
     if (index > -1) {
-      console.log("favoriteVerses before", favoriteVerses);
       favoriteVerses.splice(index, 1);
-      console.log("favoriteVerses afer", favoriteVerses);
       dispatch({
         type: sharedActionTypes.REMOVE_FROM_FAVORITE,
         favoriteVerses: favoriteVerses,

@@ -1,3 +1,4 @@
+import { Alert } from "react-native";
 import { getBooks, getVersesApi } from "../../networks/api";
 import { setLoading, sharedActionTypes } from "./sharedAction";
 
@@ -24,12 +25,21 @@ export const getBooksAction = () => {
 export const getVersesAction = (bookName, chapter, numberOfVerse) => {
   return async (dispatch) => {
     dispatch(setLoading(true));
-    const versesData = await getVersesApi(bookName, chapter, numberOfVerse);
-    const verses = versesData?.data?.verses || [];
-    dispatch({
-      type: bookActionTypes.GET_VERSES_SUCCESS,
-      verses,
-    });
-    dispatch(setLoading(false));
+    try {
+      const versesData = await getVersesApi(bookName, chapter, numberOfVerse);
+      const verses = versesData?.data?.verses || [];
+      dispatch({
+        type: bookActionTypes.GET_VERSES_SUCCESS,
+        verses,
+      });
+      dispatch(setLoading(false));
+    } catch (error) {
+      Alert.alert("Error", error.toString());
+      dispatch({
+        type: bookActionTypes.GET_VERSES_FAILED,
+        error,
+      });
+      dispatch(setLoading(false));
+    }
   };
 };

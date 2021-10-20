@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
   useColorScheme,
+  FlatList,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -15,11 +15,13 @@ import {
   setCurrentReading,
   addToFavorite,
   removeFromFavorite,
+  setLoading,
 } from "../../redux/actions/sharedAction";
 import ChapterPicker from "./components/ChapterPicker";
 import chapters from "../../json/chapters.json";
 import styles from "./styles";
 import Colors from "../../constants/Colors";
+import { useIsFocused, useRoute } from "@react-navigation/core";
 
 const BookScreen = () => {
   useEffect(() => {
@@ -27,20 +29,52 @@ const BookScreen = () => {
   }, [_getBooks]);
 
   const dispatch = useDispatch();
-
+  const isFocus = useIsFocused();
+  const route = useRoute();
+  const favoriteParam = route.params?.favoriteParam;
+  const flatListRef = useRef(null);
+  const isScrolled = useRef(false);
   const verses = useSelector((state) => state.bookReducer.verses);
   const favoriteVerses = useSelector(
     (state) => state.sharedReducer.favoriteVerses
   );
 
+  useEffect(() => {
+    dispatch(setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (!isFocus) {
+      isScrolled.current = false;
+    }
+  }, [isFocus]);
+
+  useEffect(() => {
+    if (favoriteParam) {
+      _onPressChapter(favoriteParam.book, favoriteParam.chapter);
+    }
+  }, [favoriteParam]);
+
+  useEffect(() => {
+    if (flatListRef.current && favoriteParam && !isScrolled.current) {
+      const index = verses.findIndex(
+        (i) =>
+          i.book_name === favoriteParam.book &&
+          i.chapter === favoriteParam.chapter &&
+          i.verse === favoriteParam.verse
+      );
+      if (index > -1) {
+        flatListRef.current.scrollToIndex({ index });
+      }
+
+      isScrolled.current = true;
+    }
+  }, [verses]);
+
   const currentChapter = useSelector(
     (state) => state.sharedReducer.currentChapter
   );
   const colorScheme = useColorScheme();
-
-  const textStyle = {
-    color: Colors[colorScheme].background,
-  };
 
   const _getBooks = () => {
     dispatch(getBooksAction());
@@ -68,38 +102,54 @@ const BookScreen = () => {
 
   const _onPressVerse = (verse, isFavorite) => {
     if (!isFavorite) {
-      dispatch(addToFavorite(verse.book_name, verse.chapter, verse.verse));
+      dispatch(
+        addToFavorite(verse.book_name, verse.chapter, verse.verse, verse.text)
+      );
     } else {
       dispatch(removeFromFavorite(verse.book_name, verse.chapter, verse.verse));
     }
   };
 
+  const _renderVerseItem = ({ item: verseItem }) => {
+    const isFavorited = favoriteVerses.find(
+      (i) =>
+        i.verse === verseItem.verse &&
+        i.book === verseItem.book_name &&
+        i.chapter === verseItem.chapter
+    );
+    return (
+      <View
+        style={{
+          backgroundColor: isFavorited
+            ? Colors[colorScheme].favoriteItem
+            : "transparent",
+        }}
+      >
+        <Text
+          style={styles.verseText}
+          onPress={() => _onPressVerse(verseItem, isFavorited)}
+        >
+          <Text>{verseItem.verse}. </Text>
+          <Text>{verseItem.text}</Text>
+        </Text>
+      </View>
+    );
+  };
+
   const _renderVerses = () => {
     if (!verses.length) return null;
     return (
-      <ScrollView style={styles.contentContainer}>
-        <Text style={styles.bookTitle}>{verses[0].book_name}</Text>
-        {verses.map((item, index) => {
-          const isFavorited = favoriteVerses.find(
-            (i) => i.verse === item.verse
-          );
-          return (
-            <View
-              style={{
-                backgroundColor: isFavorited ? "#FDF5E0" : "transparent",
-              }}
-            >
-              <Text
-                style={styles.verseText}
-                onPress={() => _onPressVerse(item, isFavorited)}
-              >
-                <Text>{item.verse}. </Text>
-                <Text>{item.text}</Text>
-              </Text>
-            </View>
-          );
-        })}
-      </ScrollView>
+      <FlatList
+        scrollToOverflowEnabled
+        ref={flatListRef}
+        contentContainerStyle={styles.contentContainer}
+        ListHeaderComponent={
+          <Text style={styles.bookTitle}>{verses[0].book_name}</Text>
+        }
+        keyExtractor={(item, index) => `verse-${index}`}
+        data={verses}
+        renderItem={_renderVerseItem}
+      />
     );
   };
 
